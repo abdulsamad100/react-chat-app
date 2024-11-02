@@ -1,31 +1,32 @@
 import { onAuthStateChanged } from "firebase/auth";
 import { createContext, useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
 import { auth } from "../JS Files/Firebase";
 
 export const AuthContext = createContext({
   userLoggedIn: null,
-})
-
+  isLoading: true,
+});
 
 export const AuthProvider = ({ children }) => {
   const [signin, setSignin] = useState({ userLoggedIn: null });
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        const uid = user.uid
-        setSignin({ userLoggedIn: user})
-        console.log(user);
-        
+        setSignin({ userLoggedIn: user });
       } else {
-        setSignin({ userLoggedIn: null })
-        // navigate("/login")
+        setSignin({ userLoggedIn: null });
       }
+      setIsLoading(false);
     });
-  }, [])
+
+    return () => unsubscribe(); // Cleanup on unmount
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ signin, setSignin }}>
+    <AuthContext.Provider value={{ signin, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};

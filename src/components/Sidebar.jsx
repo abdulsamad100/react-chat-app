@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, List, ListItem, ListItemText, Typography } from "@mui/material";
+import { Box, List, ListItemButton, ListItemText, Typography } from "@mui/material";
 
 const Sidebar = ({ onContactClick }) => {
   return (
@@ -16,14 +16,13 @@ const Sidebar = ({ onContactClick }) => {
       </Typography>
       <List>
         {["Group Chat", "Jane Smith", "Alice Johnson"].map((contact, index) => (
-          <ListItem
-            button
+          <ListItemButton
             key={index}
             sx={{ cursor: "pointer" }}
             onClick={() => onContactClick(contact)}
           >
             <ListItemText primary={contact} />
-          </ListItem>
+          </ListItemButton>
         ))}
       </List>
     </Box>

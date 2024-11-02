@@ -21,6 +21,7 @@ import {
   query,
   orderBy,
   serverTimestamp,
+  setDoc,
 } from "firebase/firestore";
 import { db } from "../JS Files/Firebase";
 
@@ -30,8 +31,47 @@ const ChatWindow = ({ selectedContact }) => {
   const [messages, setMessages] = useState([]);
   const [editMode, setEditMode] = useState(null);
   const [editText, setEditText] = useState("");
+  const [isTyping, setisTyping] = useState(false);
   const usersRef = useRef({});
-  
+  const handleTyping = async () => {
+    if (!isTyping) {
+      setisTyping(true);
+      await setDoc(doc(db, "messages", selectedContact, "typingStatus", userLoggedIn.uid), {
+        isTyping: true,
+        userTyping: userLoggedIn.uid,
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    setTimeout(async () => {
+      setisTyping(false);
+      await setDoc(doc(db, "messages", selectedContact, "typingStatus", userLoggedIn.uid), {
+        isTyping: false,
+        userTyping: null,
+        updatedAt: serverTimestamp(),
+      });
+    }, 1000);
+  };
+
+  useEffect(() => {
+    if (!selectedContact) return;
+
+    const typingStatusRef = collection(db, "messages", selectedContact, "typingStatus");
+    const unsubscribeTyping = onSnapshot(typingStatusRef, (snapshot) => {
+      snapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        if (data.isTyping && doc.id !== userLoggedIn.uid) {
+          setisTyping(true);
+        } else {
+          setisTyping(false);
+        }
+      });
+    });
+
+    return () => unsubscribeTyping();
+  }, [selectedContact]);
+
+
   useEffect(() => {
     if (!selectedContact) return;
 
@@ -76,7 +116,7 @@ const ChatWindow = ({ selectedContact }) => {
         console.error("User is not logged in or UID is missing.");
         return;
       }
-      
+
       try {
         await addDoc(collection(db, "messages", selectedContact, "chat"), {
           text: input,
@@ -131,7 +171,11 @@ const ChatWindow = ({ selectedContact }) => {
   }
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "85vh" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "85vh" }}>.
+      <Typography variant="caption" color="textSecondary">
+        {isTyping ? "User is typing..." : ""}
+      </Typography>
+
       <Box sx={{ flexGrow: 1, padding: 2, overflowY: "auto", borderBottom: "1px solid #ddd" }}>
         <Typography variant="h6" gutterBottom>
           Chat with {selectedContact}
@@ -202,7 +246,10 @@ const ChatWindow = ({ selectedContact }) => {
           placeholder="Type a message"
           fullWidth
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            setInput(e.target.value)
+            handleTyping()
+          }}
           onKeyPress={(e) => e.key === "Enter" && handleSend()}
         />
         <Button onClick={handleSend} variant="contained" color="primary" sx={{ marginLeft: 1 }}>
