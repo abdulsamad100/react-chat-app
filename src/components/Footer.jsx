@@ -19,7 +19,7 @@ const Footer = () => {
       }}
     >
       <Typography variant="body2">
-        © {new Date().getFullYear()} MyApp. All rights reserved.
+        © {new Date().getFullYear()} ReactChatApp. All rights reserved.
       </Typography>
     </Box>
   );

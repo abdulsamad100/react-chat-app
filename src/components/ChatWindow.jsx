@@ -8,6 +8,7 @@ import {
   Button,
   Tooltip,
   IconButton,
+  CircularProgress,
 } from "@mui/material";
 import { Edit, Delete } from "@mui/icons-material";
 import { AuthContext } from "../context/AuthContext";
@@ -21,7 +22,6 @@ import {
   query,
   orderBy,
   serverTimestamp,
-  setDoc,
 } from "firebase/firestore";
 import { db } from "../JS Files/Firebase";
 
@@ -31,81 +31,46 @@ const ChatWindow = ({ selectedContact }) => {
   const [messages, setMessages] = useState([]);
   const [editMode, setEditMode] = useState(null);
   const [editText, setEditText] = useState("");
-  const [isTyping, setisTyping] = useState(false);
-  const usersRef = useRef({});
-  const handleTyping = async () => {
-    if (!isTyping) {
-      setisTyping(true);
-      await setDoc(doc(db, "messages", selectedContact, "typingStatus", userLoggedIn.uid), {
-        isTyping: true,
-        userTyping: userLoggedIn.uid,
-        updatedAt: serverTimestamp(),
-      });
-    }
+  const [loading, setLoading] = useState(true);
+  const usersRef = useRef({}); 
 
-    setTimeout(async () => {
-      setisTyping(false);
-      await setDoc(doc(db, "messages", selectedContact, "typingStatus", userLoggedIn.uid), {
-        isTyping: false,
-        userTyping: null,
-        updatedAt: serverTimestamp(),
-      });
-    }, 1000);
-  };
-
+  
   useEffect(() => {
-    if (!selectedContact) return;
-
-    const typingStatusRef = collection(db, "messages", selectedContact, "typingStatus");
-    const unsubscribeTyping = onSnapshot(typingStatusRef, (snapshot) => {
-      snapshot.docs.forEach((doc) => {
-        const data = doc.data();
-        if (data.isTyping && doc.id !== userLoggedIn.uid) {
-          setisTyping(true);
-        } else {
-          setisTyping(false);
-        }
+    const unsubscribeUsers = onSnapshot(collection(db, "users"), (snapshot) => {
+      const usersData = {};
+      snapshot.forEach((doc) => {
+        usersData[doc.id] = doc.data().username; 
       });
+      usersRef.current = usersData; 
     });
 
-    return () => unsubscribeTyping();
-  }, [selectedContact]);
+    return () => unsubscribeUsers();
+  }, []);
 
-
+  
   useEffect(() => {
     if (!selectedContact) return;
+    setLoading(true);
 
-    const userQuery = query(collection(db, "users+"));
     const messageQuery = query(
-      collection(db, "messages", selectedContact, "chat"),
+      collection(db, "messages"),
       orderBy("sentAt", "asc")
     );
 
-    const unsubscribeUsers = onSnapshot(userQuery, (snapshot) => {
-      snapshot.docs.forEach((doc) => {
-        usersRef.current[doc.id] = doc.data();
-      });
-    });
-
     const unsubscribeMessages = onSnapshot(messageQuery, (snapshot) => {
-      setMessages((prevMessages) => {
-        const newMessages = [...prevMessages];
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === "added") {
-            const msgData = change.doc.data();
-            newMessages.push({
-              id: change.doc.id,
-              ...msgData,
-              user: usersRef.current[msgData.sentBy],
-            });
-          }
-        });
-        return newMessages;
+      const newMessages = snapshot.docs.map((doc) => {
+        const messageData = doc.data();
+        return {
+          id: doc.id,
+          ...messageData,
+          userName: usersRef.current[messageData.sentBy] || "Unknown", 
+        };
       });
+      setMessages(newMessages);
+      setLoading(false);
     });
 
     return () => {
-      unsubscribeUsers();
       unsubscribeMessages();
     };
   }, [selectedContact]);
@@ -116,9 +81,8 @@ const ChatWindow = ({ selectedContact }) => {
         console.error("User is not logged in or UID is missing.");
         return;
       }
-
       try {
-        await addDoc(collection(db, "messages", selectedContact, "chat"), {
+        await addDoc(collection(db, "messages"), {
           text: input,
           sentBy: userLoggedIn.uid,
           sentAt: serverTimestamp(),
@@ -132,7 +96,7 @@ const ChatWindow = ({ selectedContact }) => {
 
   const handleDelete = async (messageId) => {
     try {
-      await deleteDoc(doc(db, "messages", selectedContact, "chat", messageId));
+      await deleteDoc(doc(db, "messages", messageId));
       setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== messageId));
     } catch (error) {
       console.error("Error deleting message: ", error);
@@ -146,7 +110,7 @@ const ChatWindow = ({ selectedContact }) => {
 
   const handleSaveEdit = async (messageId) => {
     try {
-      await updateDoc(doc(db, "messages", selectedContact, "chat", messageId), {
+      await updateDoc(doc(db, "messages", messageId), {
         text: editText,
         sentAt: serverTimestamp(),
       });
@@ -171,85 +135,79 @@ const ChatWindow = ({ selectedContact }) => {
   }
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "85vh" }}>.
-      <Typography variant="caption" color="textSecondary">
-        {isTyping ? "User is typing..." : ""}
-      </Typography>
-
+    <Box sx={{ display: "flex", flexDirection: "column", height: "85vh" }}>
       <Box sx={{ flexGrow: 1, padding: 2, overflowY: "auto", borderBottom: "1px solid #ddd" }}>
         <Typography variant="h6" gutterBottom>
           Chat with {selectedContact}
         </Typography>
-        <List>
-          {messages.map((message) => (
-            <ListItem
-              key={message.id}
-              sx={{
-                display: "flex",
-                justifyContent: message.sentBy === userLoggedIn.uid ? "flex-end" : "flex-start",
-              }}
-            >
-              <Box
+
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <List>
+            {messages.map((message) => (
+              <ListItem
+                key={message.id}
                 sx={{
-                  maxWidth: "70%",
-                  padding: 1.5,
-                  borderRadius: 2,
-                  backgroundColor: message.sentBy === userLoggedIn.uid ? "#b3e5fc" : "#1976d2",
-                  color: message.sentBy === userLoggedIn.uid ? "#000" : "#fff",
-                  position: "relative",
+                  display: "flex",
+                  justifyContent: message.sentBy === userLoggedIn.uid ? "flex-end" : "flex-start",
                 }}
               >
-                {message.sentBy === userLoggedIn.uid && (
-                  <Box sx={{ position: "absolute", top: -10, right: -30 }}>
-                    <Tooltip title="Edit">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleEdit(message)}
-                      >
-                        <Edit fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDelete(message.id)}
-                      >
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                )}
-                <Tooltip title={message.user ? `${message.user.firstName} ${message.user.lastname}` : "Unknown"}>
+                <Box
+                  sx={{
+                    maxWidth: "70%",
+                    padding: 1.5,
+                    borderRadius: 2,
+                    backgroundColor: message.sentBy === userLoggedIn.uid ? "#b3e5fc" : "#1976d2",
+                    color: message.sentBy === userLoggedIn.uid ? "#000" : "#fff",
+                    position: "relative",
+                  }}
+                >
+                  {message.sentBy === userLoggedIn.uid && (
+                    <Box sx={{ position: "absolute", top: -10, right: -30 }}>
+                      <Tooltip title="Edit">
+                        <IconButton size="small" onClick={() => handleEdit(message)}>
+                          <Edit fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <IconButton size="small" onClick={() => handleDelete(message.id)}>
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  )}
                   <Typography variant="body2" fontWeight="bold">
-                    {message.user ? `${message.user.firstName}` : "Unknown"}
+                    {message.sentBy === userLoggedIn.uid ? "You" : usersRef.current[message.sentBy] || "Unknown"}
                   </Typography>
-                </Tooltip>
-                {editMode === message.id ? (
-                  <TextField
-                    fullWidth
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
-                    onBlur={() => handleSaveEdit(message.id)}
-                    variant="standard"
-                  />
-                ) : (
-                  <Typography variant="body1">{message.text}</Typography>
-                )}
-              </Box>
-            </ListItem>
-          ))}
-        </List>
+
+                  {editMode === message.id ? (
+                    <TextField
+                      fullWidth
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onBlur={() => handleSaveEdit(message.id)}
+                      variant="standard"
+                    />
+                  ) : (
+                    <Typography variant="body1">{message.text}</Typography>
+                  )}
+                </Box>
+              </ListItem>
+            ))}
+          </List>
+        )}
       </Box>
+
       <Box sx={{ display: "flex", padding: 2 }}>
         <TextField
           variant="outlined"
           placeholder="Type a message"
           fullWidth
           value={input}
-          onChange={(e) => {
-            setInput(e.target.value)
-            handleTyping()
-          }}
+          onChange={(e) => setInput(e.target.value)}
           onKeyPress={(e) => e.key === "Enter" && handleSend()}
         />
         <Button onClick={handleSend} variant="contained" color="primary" sx={{ marginLeft: 1 }}>

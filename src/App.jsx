@@ -1,8 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, createBrowserRouter, createRoutesFromElements, RouterProvider } from 'react-router-dom';
 import './App.css'
 import SignupForm from './Routes/SignupForm';
-import Header from './components/Header';
-import Footer from './components/Footer';
 import Home from './Routes/Home';
 import About from './Routes/About';
 import Contact from './Routes/Contact';

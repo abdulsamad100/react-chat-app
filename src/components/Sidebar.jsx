@@ -15,7 +15,7 @@ const Sidebar = ({ onContactClick }) => {
         Contacts
       </Typography>
       <List>
-        {["Group Chat", "Jane Smith", "Alice Johnson"].map((contact, index) => (
+        {["Group Chat"].map((contact, index) => (
           <ListItemButton
             key={index}
             sx={{ cursor: "pointer" }}

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { auth } from '../JS Files/Firebase';
-import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import toast,{ Toaster } from 'react-hot-toast';
 
 const LoginForm = () => {
   const [formData, setFormData] = useState({
@@ -29,12 +29,13 @@ const LoginForm = () => {
       console.log("Signed up");
     } catch (error) {
       const errorMessage = error.message;
-      console.log(`Error: ${errorMessage}`);
+      toast.error("Email/Password is incorrect");
     }
   };
 
   return (
     <Container>
+      <Toaster/>
       <Box sx={{ py: 5, textAlign: 'center', maxWidth: '400px', margin: '0 auto' }}>
         <Typography variant="h4" gutterBottom>
           Login
@@ -43,6 +44,7 @@ const LoginForm = () => {
           <TextField
             fullWidth
             required
+            autoComplete=''
             label="Email"
             name="email"
             type="email"
@@ -54,6 +56,7 @@ const LoginForm = () => {
           <TextField
             fullWidth
             required
+            autoComplete=''
             label="Password"
             name="password"
             type="password"

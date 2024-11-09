@@ -2,11 +2,11 @@ import React, { useContext, useState } from "react";
 import { Box, CircularProgress } from "@mui/material";
 import Sidebar from "../components/Sidebar";
 import ChatWindow from "../components/ChatWindow";
-import { AuthContext } from "../context/AuthContext"; // Adjust the import based on your file structure
+import { AuthContext } from "../context/AuthContext";
 
 const Dashboard = () => {
-  const [selectedContact, setSelectedContact] = useState("John Doe");
-  const { isLoading } = useContext(AuthContext); // Get loading state from context
+  const [selectedContact, setSelectedContact] = useState("Group Chat");
+  const { isLoading } = useContext(AuthContext); 
 
   if (isLoading) {
     return (
@@ -20,7 +20,7 @@ const Dashboard = () => {
       >
         <CircularProgress />
       </Box>
-    ); // Show loading spinner
+    ); 
   }
 
   return (

@@ -33,7 +33,7 @@ const Header = () => {
         <AppBar position="static" color="primary" sx={{ borderRadius: '16px' }}>
             <Toolbar>
                 <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                    React Context
+                    React ChatApp
                 </Typography>
 
                 {!signin.userLoggedIn ?
