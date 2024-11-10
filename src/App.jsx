@@ -25,7 +25,7 @@ const router = createBrowserRouter(
         <Route path="signup" element={<SignupForm />} />
         <Route path="login" element={<LoginForm />} />
       </Route>
-      <Route path="*" element={<NotFound />} /> {/* Add NotFound for unmatched routes */}
+      <Route path="*" element={<NotFound />} />
     </Route>
   )
 );
