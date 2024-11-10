@@ -42,7 +42,7 @@ const SignupForm = () => {
       toast.success("User registered successfully!");
       navigate('/login');
     } catch (error) {
-      console.log("Error:", error.message);
+      console.error("Error:", error.message);
       const errormessage=error.message;
       if (errormessage == "Firebase: Error (auth/invalid-email)."){
         toast.error(`Kindly type Correct Email Format`);

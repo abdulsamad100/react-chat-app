@@ -1,40 +1,39 @@
 import React, { useContext } from 'react';
-import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Box, IconButton } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { getAuth, signOut } from "firebase/auth";
-import { toast } from 'react-toastify';
+import { ThemeContext } from '../context/ThemeContext'; // Import the ThemeContext
 import { auth } from '../JS Files/Firebase';
+import toast, { Toaster } from 'react-hot-toast';
+import { LightMode, DarkMode } from '@mui/icons-material'; // Import the icons
+import { signOut } from 'firebase/auth';
 
 const Header = () => {
     const { signin } = useContext(AuthContext);
+    const { theme, toggleTheme } = useContext(ThemeContext); // Access theme and toggleTheme from context
 
-
-    const fbSignout = async () => {
+    const Signout = async () => {
         await signOut(auth).then(() => {
-            toast('SignOut Successful', {
-                position: "top-right",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "light",
-                transition: Bounce,
-            });
+            toast('Good Bye!', {
+                icon: '👋',
+                duration: 1500
+              });
         }).catch((error) => {
-            console.log(error.errormessage);
-
+            toast.error(error.errormessage);
         });
     }
 
     return (
         <AppBar position="static" color="primary" sx={{ borderRadius: '16px' }}>
+            <Toaster />
             <Toolbar>
                 <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                     React ChatApp
                 </Typography>
+
+                {/* <IconButton onClick={toggleTheme} color="inherit">
+                    {theme === 'dark' ? <LightMode /> : <DarkMode />}
+                </IconButton> */}
 
                 {!signin.userLoggedIn ?
                     <Box sx={{ display: { md: 'block' } }}>
@@ -63,12 +62,11 @@ const Header = () => {
                             </Button>
                         </Link>
                     </Box> : <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button color="inherit" variant="outlined" onClick={fbSignout}>
+                        <Button color="inherit" variant="outlined" onClick={Signout}>
                             Signout
                         </Button>
                     </Box>
                 }
-
             </Toolbar>
         </AppBar>
     );

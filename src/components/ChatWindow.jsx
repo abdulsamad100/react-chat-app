@@ -10,7 +10,7 @@ import {
   IconButton,
   CircularProgress,
 } from "@mui/material";
-import { Edit, Delete } from "@mui/icons-material";
+import { Edit, Delete, CompressOutlined } from "@mui/icons-material";
 import { AuthContext } from "../context/AuthContext";
 import {
   addDoc,
@@ -24,6 +24,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../JS Files/Firebase";
+import toast,{ Toaster } from 'react-hot-toast';
 
 const ChatWindow = ({ selectedContact }) => {
   const { signin: { userLoggedIn } } = useContext(AuthContext);
@@ -33,7 +34,6 @@ const ChatWindow = ({ selectedContact }) => {
   const [editText, setEditText] = useState("");
   const [loading, setLoading] = useState(true);
   const usersRef = useRef({}); 
-
   
   useEffect(() => {
     const unsubscribeUsers = onSnapshot(collection(db, "users"), (snapshot) => {
@@ -41,12 +41,11 @@ const ChatWindow = ({ selectedContact }) => {
       snapshot.forEach((doc) => {
         usersData[doc.id] = doc.data().username; 
       });
-      usersRef.current = usersData; 
+      usersRef.current = usersData;       
     });
 
     return () => unsubscribeUsers();
   }, []);
-
   
   useEffect(() => {
     if (!selectedContact) return;
@@ -78,7 +77,7 @@ const ChatWindow = ({ selectedContact }) => {
   const handleSend = async () => {
     if (input.trim()) {
       if (!userLoggedIn || !userLoggedIn.uid) {
-        console.error("User is not logged in or UID is missing.");
+        toast.error("User is not logged in or UID is missing.");
         return;
       }
       try {
@@ -89,7 +88,7 @@ const ChatWindow = ({ selectedContact }) => {
         });
         setInput("");
       } catch (error) {
-        console.error("Error sending message: ", error);
+        toast.error("Error sending message: ", error);
       }
     }
   };
@@ -99,7 +98,7 @@ const ChatWindow = ({ selectedContact }) => {
       await deleteDoc(doc(db, "messages", messageId));
       setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== messageId));
     } catch (error) {
-      console.error("Error deleting message: ", error);
+      toast.error("Error deleting message: ", error);
     }
   };
 
@@ -122,7 +121,7 @@ const ChatWindow = ({ selectedContact }) => {
       setEditMode(null);
       setEditText("");
     } catch (error) {
-      console.error("Error updating message: ", error);
+      toast.error("Error updating message: ", error);
     }
   };
 
@@ -135,7 +134,10 @@ const ChatWindow = ({ selectedContact }) => {
   }
 
   return (
+    <>
+    <Toaster/>
     <Box sx={{ display: "flex", flexDirection: "column", height: "85vh" }}>
+
       <Box sx={{ flexGrow: 1, padding: 2, overflowY: "auto", borderBottom: "1px solid #ddd" }}>
         <Typography variant="h6" gutterBottom>
           Chat with {selectedContact}
@@ -215,6 +217,7 @@ const ChatWindow = ({ selectedContact }) => {
         </Button>
       </Box>
     </Box>
+    </>
   );
 };
 

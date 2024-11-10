@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Container, Typography, TextField, Button, Box } from '@mui/material';
+import { Toaster } from 'react-hot-toast';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -18,13 +19,13 @@ const Contact = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
     alert('Thank you for contacting us! We will get back to you shortly.');
     setFormData({ name: '', email: '', message: '' });
   };
 
   return (
     <Container>
+      <Toaster/>
       <Box sx={{ py: 5, textAlign: 'center' }}>
         <Typography variant="h3" gutterBottom>
           Contact Us
