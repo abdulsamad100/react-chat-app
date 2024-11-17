@@ -6,11 +6,11 @@ import {
   ListItem,
   TextField,
   Button,
-  Tooltip,
   IconButton,
   CircularProgress,
+  Menu, MenuItem,
 } from "@mui/material";
-import { Edit, Delete, CompressOutlined } from "@mui/icons-material";
+import { ArrowDropDown } from "@mui/icons-material";
 import { AuthContext } from "../context/AuthContext";
 import {
   addDoc,
@@ -24,7 +24,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../JS Files/Firebase";
-import toast,{ Toaster } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 const ChatWindow = ({ selectedContact }) => {
   const { signin: { userLoggedIn } } = useContext(AuthContext);
@@ -33,20 +33,32 @@ const ChatWindow = ({ selectedContact }) => {
   const [editMode, setEditMode] = useState(null);
   const [editText, setEditText] = useState("");
   const [loading, setLoading] = useState(true);
-  const usersRef = useRef({}); 
-  
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [menuMessageId, setMenuMessageId] = useState(null);
+  const usersRef = useRef({});
+
+  const handleMenuOpen = (event, messageId) => {
+    setAnchorEl(event.currentTarget);
+    setMenuMessageId(messageId);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setMenuMessageId(null);
+  };
+
   useEffect(() => {
     const unsubscribeUsers = onSnapshot(collection(db, "users"), (snapshot) => {
       const usersData = {};
       snapshot.forEach((doc) => {
-        usersData[doc.id] = doc.data().username; 
+        usersData[doc.id] = doc.data().username;
       });
-      usersRef.current = usersData;       
+      usersRef.current = usersData;
     });
 
     return () => unsubscribeUsers();
   }, []);
-  
+
   useEffect(() => {
     if (!selectedContact) return;
     setLoading(true);
@@ -62,7 +74,7 @@ const ChatWindow = ({ selectedContact }) => {
         return {
           id: doc.id,
           ...messageData,
-          userName: usersRef.current[messageData.sentBy] || "Unknown", 
+          userName: usersRef.current[messageData.sentBy] || "Unknown",
         };
       });
       setMessages(newMessages);
@@ -111,7 +123,7 @@ const ChatWindow = ({ selectedContact }) => {
     try {
       await updateDoc(doc(db, "messages", messageId), {
         text: editText,
-        sentAt: serverTimestamp(),
+        messageEdited: true,
       });
       setMessages((prevMessages) =>
         prevMessages.map((msg) =>
@@ -135,88 +147,116 @@ const ChatWindow = ({ selectedContact }) => {
 
   return (
     <>
-    <Toaster/>
-    <Box sx={{ display: "flex", flexDirection: "column", height: "85vh" }}>
+      <Toaster />
+      <Box sx={{ display: "flex", flexDirection: "column", height: "85vh" }}>
 
-      <Box sx={{ flexGrow: 1, padding: 2, overflowY: "auto", borderBottom: "1px solid #ddd" }}>
-        <Typography variant="h6" gutterBottom>
-          Chat with {selectedContact}
-        </Typography>
+        <Box sx={{ flexGrow: 1, padding: 2, overflowY: "auto", borderBottom: "1px solid #ddd" }}>
+          <Typography variant="h6" gutterBottom>
+            Chat with {selectedContact}
+          </Typography>
 
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <List>
-            {messages.map((message) => (
-              <ListItem
-                key={message.id}
-                sx={{
-                  display: "flex",
-                  justifyContent: message.sentBy === userLoggedIn.uid ? "flex-end" : "flex-start",
-                }}
-              >
-                <Box
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <List>
+              {messages.map((message) => (
+                <ListItem
+                  key={message.id}
                   sx={{
-                    maxWidth: "70%",
-                    padding: 1.5,
-                    borderRadius: 2,
-                    backgroundColor: message.sentBy === userLoggedIn.uid ? "#b3e5fc" : "#1976d2",
-                    color: message.sentBy === userLoggedIn.uid ? "#000" : "#fff",
-                    position: "relative",
+                    display: "flex",
+                    justifyContent: message.sentBy === userLoggedIn.uid ? "flex-end" : "flex-start",
                   }}
                 >
-                  {message.sentBy === userLoggedIn.uid && (
-                    <Box sx={{ position: "absolute", top: -10, right: -30 }}>
-                      <Tooltip title="Edit">
-                        <IconButton size="small" onClick={() => handleEdit(message)}>
-                          <Edit fontSize="small" />
+                  <Box
+                    sx={{
+                      maxWidth: "70%",
+                      padding: 1.5,
+                      borderRadius: 2,
+                      backgroundColor: message.sentBy === userLoggedIn.uid ? "#b3e5fc" : "#1976d2",
+                      color: message.sentBy === userLoggedIn.uid ? "#000" : "#fff",
+                      position: "relative",
+                    }}
+                  >
+                    {message.sentBy === userLoggedIn.uid && (
+                      <Box
+                        sx={{ position: "absolute", top: -3, right: -30 }}
+                      >
+                        <IconButton
+                          size="small"
+                          onClick={(e) => handleMenuOpen(e, message.id)}
+                        >
+                          <ArrowDropDown />
                         </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton size="small" onClick={() => handleDelete(message.id)}>
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  )}
-                  <Typography variant="body2" fontWeight="bold">
-                    {message.sentBy === userLoggedIn.uid ? "You" : usersRef.current[message.sentBy] || "Unknown"}
-                  </Typography>
+                        <Menu
+                          anchorEl={anchorEl}
+                          open={menuMessageId === message.id}
+                          onClose={handleMenuClose}
+                          anchorOrigin={{
+                            vertical: "top",
+                            horizontal: "right",
+                          }}
+                          transformOrigin={{
+                            vertical: "top",
+                            horizontal: "right",
+                          }}
+                        >
+                          <MenuItem onClick={() => { handleEdit(message); handleMenuClose(); }}>
+                            Edit
+                          </MenuItem>
+                          <MenuItem onClick={() => { handleDelete(message.id); handleMenuClose(); }}>
+                            Delete
+                          </MenuItem>
+                        </Menu>
+                      </Box>
 
-                  {editMode === message.id ? (
-                    <TextField
-                      fullWidth
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      onBlur={() => handleSaveEdit(message.id)}
-                      variant="standard"
-                    />
-                  ) : (
-                    <Typography variant="body1">{message.text}</Typography>
-                  )}
-                </Box>
-              </ListItem>
-            ))}
-          </List>
-        )}
-      </Box>
+                    )}
+                    <Typography variant="body2" fontWeight="bold" >
+                      {message.sentBy === userLoggedIn.uid ? "You" : usersRef.current[message.sentBy] || "Unknown"}
+                      {message.messageEdited && (
+                        <Typography variant="body2" sx={{ fontStyle: "italic", color: "gray" }}>
+                          (edited)
+                        </Typography>
+                      )}
+                    </Typography>
 
-      <Box sx={{ display: "flex", padding: 2 }}>
-        <TextField
-          variant="outlined"
-          placeholder="Type a message"
-          fullWidth
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={(e) => e.key === "Enter" && handleSend()}
-        />
-        <Button onClick={handleSend} variant="contained" color="primary" sx={{ marginLeft: 1 }}>
-          Send
-        </Button>
+
+                    {editMode === message.id ? (
+                      <TextField
+                        fullWidth
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        onBlur={() => handleSaveEdit(message.id)}
+                        variant="standard"
+                      />
+                    ) : (
+                      <>
+
+                        <Typography variant="body1">{message.text}</Typography>
+                      </>
+                    )}
+                  </Box>
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </Box>
+
+        <Box sx={{ display: "flex", padding: 2 }}>
+          <TextField
+            variant="outlined"
+            placeholder="Type a message"
+            fullWidth
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleSend()}
+          />
+          <Button onClick={handleSend} variant="contained" color="primary" sx={{ marginLeft: 1 }}>
+            Send
+          </Button>
+        </Box>
       </Box>
-    </Box>
     </>
   );
 };
